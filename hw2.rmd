@@ -1,0 +1,176 @@
+---
+title: "Assignment 2 - R Code"
+output: html_document
+date: "October 30, 2015"
+---
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.width=7.7, fig.height=4, fig.path='Figs/')
+```
+
+#Problem 1: AirPollution Data
+##Question 1
+```{r}
+# Read data and construct simple linear models.
+data = read.table('AirPollution.txt', header = TRUE)
+
+m0 = lm(data$Y ~ 1)
+res.0 = resid(m0)
+m1 = lm(data$Y ~ data$X12)
+res.1 = resid(m1)
+m2 = lm(data$Y ~ data$X13)
+res.2 = resid(m2)
+m3 = lm(data$Y ~ data$X14)
+res.3 = resid(m3)
+
+m4 = lm(data$Y ~ data$X4)
+res.4 = resid(m4)
+m5 = lm(data$Y ~ data$X6)
+res.5 = resid(m5)
+
+```
+
+##Explanatory Capacity
+```{r}
+summary(m1)$r.squared
+summary(m2)$r.squared
+summary(m3)$r.squared
+```
+
+From $R^2$ statistics we can find that the proportion of variation in $Y$ explained by $X_{12}, X_{13}, X_{14}$ are 0.03, 0.006, 0.18 respectively. It is reasonable to say that $X_{12}$, $X_{13}$ have no explanatory power in general, while $X_{14}$ is related to the response.
+
+##Check LM Assumption
+We check the assumption of linear regression model by checking the residual plots.
+
+```{r}
+with(data,{
+        par(mfrow=c(1,2))
+        plot(X12, Y,
+             ylab = "Y",
+             pch=16)
+        abline(m1, col='blue')
+        title("Fitted Line: Y~X12")
+        
+        plot(X13, Y,
+             ylab = "Y",
+             pch=16)
+        abline(m2, col='blue')
+        title("Fitted Line: Y~X13")
+})
+```
+
+```{r}
+with(data, {
+        par(mfrow=c(1,2))
+        plot(X12, res.1,
+             xlab='X12', ylab='Residuals', pch=16)
+        abline(h=0, lty=2, col='red')
+        title('Residuals vs X12')
+        
+        plot(X12, res.1, xlim=c(0,60),
+        xlab='X12', ylab='Residuals', pch=16)
+        abline(h=0, lty=2, col='red')
+        title('Residuals vs X12 - Zoomed in')
+})
+```
+
+```{r}
+with(data, {
+        par(mfrow=c(1,2))
+        plot(X13, res.2,
+             xlab='X13', ylab='Residuals', pch=16)
+        abline(h=0, lty=2, col='red')
+        title('Residuals vs X13')
+        
+        plot(X13, res.2, xlim=c(0,60),
+        xlab='X13', ylab='Residuals', pch=16)
+        abline(h=0, lty=2, col='red')
+        title('Residuals vs X13 - Zoomed in')
+})
+```
+
+```{r}
+with(data, {
+        par(mfrow=c(1,1))
+        plot(X14, res.3,
+             xlab='X14', ylab='Residuals', pch=16)
+        abline(h=0, lty=2, col='red')
+        title('Residuals vs X14')
+})
+```
+
+##Comments
+For model 1 and 2, in both cases, (see the fitted line plots) the best fit is leveraged too heavily by two extreme values in $X$, resulted in a non-zero slope. \newline
+
+For model 1 and 2 (regress on $X_{12},X_{13}$), the local model adequacy is generally not good.  We can perceive pattern in residual plot that among some range of $X\in[30,60]$, all residuals are positive.
+
+Model 3 has better adequacy than 1 and 2, in that the residual plot tend to have no pattern at all values of $X$. 
+
+##Question 2
+
+```{r}
+anova(m4)
+anova(m5)
+```
+
+##Comments
+According to p-value of both anova tables, we fail to reject $H_0$ for model 4, i.e. the coefficient of $X_4$ is zero. We strongly reject $H_0$ for model 5, i.e. the coefficient of $X_6$ is significantly non-zero. We conclude that $X_4$ is uncorrelated to response, while $X_6$ is related.
+
+
+
+
+#Problem 2: Domestic Immigration Data
+##Question 1
+```{r}
+# Read data.
+data = read.table('NetDomesticImmig.txt', header = TRUE, sep='\t')
+
+# Clean data.
+y = data$NDIR
+drops = c('NDIR','State','Region')
+data.x = data[,!(names(data) %in% drops)]
+
+variables = colnames(data.x)
+r.squared = c()
+p.val = c()
+
+for(x in data.x){
+        model = lm(y ~ x)
+        
+        # extract r squared.
+        r.squared = c(r.squared, summary(model)$r.squared)
+        
+        # extract p value.
+        f = summary(model)$fstatistic
+        p = pf(f[1],f[2],f[3],lower.tail=F)
+        p.val = c(p.val, p)
+}
+
+# Analyze global adequacy of simple lms
+usefulness = data.frame(variables, r.squared, p.val)
+usefulness = usefulness[order(-r.squared),]
+usefulness
+
+```
+
+At significance level $\alpha=0.05$, the only variable that is statistically significant is $Taxes$. The ranking is given by the above dataframe sorted by R squared.
+
+##Question 2
+```{r}
+model = lm(data$NDIR ~ data$Taxes)
+res = resid(model)
+
+with(data, {
+        par(mfrow=c(1,1))
+        plot(Taxes, res, ylim=c(-100, 150),
+             xlab='Taxes', ylab='Residuals', pch=16)
+        abline(h=0, lty=2, col='red')
+        title('Residuals vs Taxes')
+})
+
+```
+
+##Comments
+The model $y=\beta_1 Taxes + \beta_0 + u$ is generally adequate except for one outlier in residual plot.
+
+
